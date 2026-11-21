@@ -64,8 +64,9 @@
   select { font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--chip); color: var(--fg); }
   .leaflet-container { font: inherit; }
-  #map.has-point .legend { display: none; }
   @media (max-width: 600px) {
+    /* platspanelen ligger nederst i mobilen och skulle täcka legenden */
+    #map.has-point .legend { display: none; }
     #point { top: auto; bottom: 30px; left: 8px; right: 8px; width: auto; padding: 8px 10px; }
     #point svg { height: 95px; }
     #timelabel { min-width: 0; font-size: 13px; }
