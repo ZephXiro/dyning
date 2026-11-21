@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dyning södra Östersjön</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b2430; --muted: #5d6b7a; --line: #dfe5ec;
+    --panel: rgba(255,255,255,.94); --accent: #0b6bcb; --chip: #eef3f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11161c; --fg: #e6edf3; --muted: #9aa8b6; --line: #2a333d;
+      --panel: rgba(20,26,33,.94); --accent: #5aa9ff; --chip: #1f2833; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  #app { display: flex; flex-direction: column; height: 100%; }
+  header { padding: 10px 16px 8px; border-bottom: 1px solid var(--line); display: flex;
+    flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  header .meta { color: var(--muted); font-size: 12.5px; }
+  header .stale { color: #c0392b; font-weight: 600; }
+  #map { flex: 1; min-height: 0; background: #cfd8e0; }
+  .controls { padding: 8px 16px 10px; border-top: 1px solid var(--line); background: var(--bg); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .chip { border: 1px solid var(--line); background: var(--chip); color: var(--fg);
+    border-radius: 999px; padding: 5px 11px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .time { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  #play { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--chip); color: var(--fg); font-size: 15px; cursor: pointer; flex: none; }
+  #slider { flex: 1; min-width: 0; accent-color: var(--accent); }
+  #timelabel { font-variant-numeric: tabular-nums; min-width: 128px; text-align: right; font-weight: 600; }
+  .days { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px;
+    margin: 2px 46px 0 46px; }
+  .legend { position: absolute; z-index: 500; left: 10px; bottom: 10px; background: var(--panel);
+    border-radius: 8px; padding: 6px 8px 4px; box-shadow: 0 1px 4px rgba(0,0,0,.2); font-size: 11.5px; }
+  .legend .bar { width: 200px; height: 10px; border-radius: 3px; }
+  .legend .ticks { display: flex; justify-content: space-between; color: var(--muted); }
+  #point { position: absolute; z-index: 600; right: 10px; top: 10px; width: min(360px, calc(100% - 20px));
+    background: var(--panel); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    padding: 10px 12px; display: none; }
+  #point h2 { font-size: 14px; margin: 0 0 4px; display: flex; justify-content: space-between; }
+  #point button.x { border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; }
+  #point .now { display: grid; grid-template-columns: auto auto; gap: 1px 12px; font-size: 13px; margin-bottom: 6px; }
+  #point .now span:nth-child(odd) { color: var(--muted); }
+  #point svg { width: 100%; height: 130px; display: block; }
+  #point .key { font-size: 11.5px; color: var(--muted); display: flex; gap: 12px; }
+  #point .key i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  select { font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--chip); color: var(--fg); }
+  .leaflet-container { font: inherit; }
+  #map.has-point .legend { display: none; }
+  @media (max-width: 600px) {
+    #point { top: auto; bottom: 30px; left: 8px; right: 8px; width: auto; padding: 8px 10px; }
+    #point svg { height: 95px; }
+    #timelabel { min-width: 0; font-size: 13px; }
+    .days { margin: 2px 0 0 46px; }
+  }
+  .arrow-layer { pointer-events: none; }
+  .err { padding: 20px 16px; color: #c0392b; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Dyning – södra Östersjön</h1>
+    <span class="meta" id="runinfo">Laddar prognos …</span>
+  </header>
+  <div id="map" style="position:relative">
+    <div class="legend" id="legend"></div>
+    <div id="point" role="dialog" aria-label="Prognos för punkt"></div>
+  </div>
+  <div class="controls">
+    <div class="row">
+      <div class="chips" id="layers" role="group" aria-label="Lager"></div>
+      <select id="spots" aria-label="Välj plats"><option value="">Plats …</option></select>
+    </div>
+    <div class="time">
+      <button id="play" aria-label="Spela upp">▶</button>
+      <input type="range" id="slider" min="0" max="0" value="0" aria-label="Tid">
+      <span id="timelabel">–</span>
+    </div>
+    <div class="days" id="days"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+"use strict";
+const DATA = "data/";
+
+// --- Färgskalor ----------------------------------------------------------
+const WAVE_STOPS = [[0,"#e8f4fb"],[0.25,"#bfe3f2"],[0.5,"#7cc6e6"],[0.75,"#3aa0d6"],[1,"#2a7fc0"],
+  [1.5,"#3cb371"],[2,"#b5d334"],[2.5,"#f2d22e"],[3,"#f39c26"],[4,"#e2452f"],[5,"#b3207d"],[6,"#6b1a8c"]];
+const WIND_STOPS = [[0,"#eef6fb"],[3,"#bfe3f2"],[6,"#7cc6e6"],[9,"#3cb371"],[12,"#b5d334"],
+  [15,"#f2d22e"],[18,"#f39c26"],[21,"#e2452f"],[25,"#b3207d"],[30,"#6b1a8c"]];
+const PER_STOPS = [[0,"#f3f0fa"],[2,"#d6cdee"],[3,"#a99bdb"],[4,"#7c6cc6"],[5,"#4f8fd1"],
+  [6,"#2fb5b5"],[7,"#5fcf6a"],[8,"#d4d33a"],[10,"#f39c26"],[12,"#e2452f"]];
+
+const LAYERS = [
+  { id: "shts", name: "Dyning", dir: "mdts", stops: WAVE_STOPS, unit: "m", max: 4, ticks: [0,1,2,3,4] },
+  { id: "swh",  name: "Total våghöjd", dir: "mwd", stops: WAVE_STOPS, unit: "m", max: 4, ticks: [0,1,2,3,4] },
+  { id: "shww", name: "Vindvågor", dir: "mwd", stops: WAVE_STOPS, unit: "m", max: 4, ticks: [0,1,2,3,4] },
+  { id: "mpts", name: "Dyningsperiod", dir: "mdts", stops: PER_STOPS, unit: "s", max: 12, ticks: [0,3,6,9,12] },
+  { id: "wind", name: "Vind", dir: "dwi", stops: WIND_STOPS, unit: "m/s", max: 25, ticks: [0,5,10,15,20,25] },
+];
+
+const SPOTS = [
+  ["Mölle / Kullen", 56.28, 12.45], ["Torekov", 56.43, 12.58], ["Falsterbo", 55.39, 12.80],
+  ["Trelleborg", 55.35, 13.15], ["Ystad", 55.40, 13.82], ["Kåseberga", 55.37, 14.07],
+  ["Sandhammaren", 55.37, 14.21], ["Simrishamn", 55.55, 14.38], ["Åhus", 55.94, 14.34],
+  ["Hanö", 56.00, 14.86], ["Bornholm, Rønne", 55.10, 14.65], ["Bornholm, Dueodde", 54.98, 15.08],
+];
+
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function makeLut(stops, max) {   // 256-stegs uppslagstabell över 0..max
+  const s = stops.map(([v, c]) => [v, hexToRgb(c)]);
+  const lut = new Uint8ClampedArray(256 * 3);
+  for (let k = 0; k < 256; k++) {
+    const v = k / 255 * max * 1.5;
+    let i = 0; while (i < s.length - 2 && v > s[i + 1][0]) i++;
+    const [v0, c0] = s[i], [v1, c1] = s[i + 1];
+    const t = Math.max(0, Math.min(1, (v - v0) / (v1 - v0)));
+    for (let ch = 0; ch < 3; ch++) lut[k * 3 + ch] = c0[ch] + (c1[ch] - c0[ch]) * t;
+  }
+  return lut;
+}
+function gradientCss(stops, max) {
+  return "linear-gradient(to right," + stops.filter(s => s[0] <= max)
+    .map(([v, c]) => `${c} ${(v / max * 100).toFixed(1)}%`).join(",") + ")";
+}
+
+// --- Tillstånd ----------------------------------------------------------
+let meta, G, NT, layer = LAYERS[0], t = 0, playing = null, selected = null;
+const cache = {};
+
+async function field(id) {
+  if (!cache[id]) cache[id] = fetch(DATA + id + ".bin?v=" + encodeURIComponent(meta.generated))
+    .then(r => { if (!r.ok) throw new Error(id + ": " + r.status); return r.arrayBuffer(); })
+    .then(b => new Uint8Array(b));
+  return cache[id];
+}
+function val(arr, id, tt, j, i) {
+  const q = arr[(tt * G.nj + j) * G.ni + i];
+  return q === 255 ? NaN : q * meta.fields[id].scale;
+}
+
+// --- Tid ----------------------------------------------------------------
+const fmtTime = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const fmtDay = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", weekday: "short", day: "numeric" });
+const fmtHour = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit" });
+
+// --- Karta --------------------------------------------------------------
+const narrow = innerWidth < 600;
+const map = L.map("map", { zoomControl: true, attributionControl: true, minZoom: 5, maxZoom: 11, zoomSnap: 0.5 })
+  .setView(narrow ? [55.5, 14.0] : [55.6, 14.2], narrow ? 6.5 : 7);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Vågdata: <a href="https://opendatadocs.dmi.govcloud.dk/">DMI</a> (WAM)',
+}).addTo(map);
+
+// Canvas som bildlager (Leaflet sköter position/zoom-animation)
+const CanvasOverlay = L.ImageOverlay.extend({
+  _initImage() {
+    const c = this._image = this._url;
+    L.DomUtil.addClass(c, "leaflet-image-layer");
+    if (this._zoomAnimated) L.DomUtil.addClass(c, "leaflet-zoom-animated");
+    c.onselectstart = L.Util.falseFn; c.onmousemove = L.Util.falseFn;
+    if (this.options.zIndex != null) this._updateZIndex();
+    this._updateOpacity();
+  },
+});
+
+const fieldCanvas = document.createElement("canvas");
+let fieldLayer;
+const SUB = 4; // underprovtagning per rutcell
+
+// Mercator-hjälp
+const mercY = lat => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
+const invMercY = y => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180 / Math.PI;
+
+function bounds() {
+  const n = G.lat0 + G.dlat / 2, s = G.lat0 - (G.nj - 1) * G.dlat - G.dlat / 2;
+  const w = G.lon0 - G.dlon / 2, e = G.lon0 + (G.ni - 1) * G.dlon + G.dlon / 2;
+  return { n, s, w, e };
+}
+
+async function drawField() {
+  const arr = await field(layer.id);
+  const lut = makeLut(layer.stops, layer.max);
+  const b = bounds();
+  const W = G.ni * SUB, H = Math.round(G.nj * SUB * 1.25);
+  fieldCanvas.width = W; fieldCanvas.height = H;
+  const ctx = fieldCanvas.getContext("2d");
+  const img = ctx.createImageData(W, H), px = img.data;
+  const yN = mercY(b.n), yS = mercY(b.s);
+  const scale = meta.fields[layer.id].scale, k = 255 / (layer.max * 1.5);
+  const base = t * G.nj * G.ni;
+  for (let y = 0; y < H; y++) {
+    const lat = invMercY(yN + (yS - yN) * (y + 0.5) / H);
+    const fj = (G.lat0 - lat) / G.dlat; // radindex (flyttal)
+    const j0 = Math.max(0, Math.min(G.nj - 1, Math.floor(fj))), j1 = Math.min(G.nj - 1, j0 + 1);
+    const ty = Math.max(0, Math.min(1, fj - j0));
+    for (let x = 0; x < W; x++) {
+      const lon = b.w + (b.e - b.w) * (x + 0.5) / W;
+      const fi = (lon - G.lon0) / G.dlon;
+      const i0 = Math.max(0, Math.min(G.ni - 1, Math.floor(fi))), i1 = Math.min(G.ni - 1, i0 + 1);
+      const tx = Math.max(0, Math.min(1, fi - i0));
+      // bilinjär interpolation som hoppar över land
+      let sum = 0, wsum = 0;
+      const q00 = arr[base + j0 * G.ni + i0], q01 = arr[base + j0 * G.ni + i1];
+      const q10 = arr[base + j1 * G.ni + i0], q11 = arr[base + j1 * G.ni + i1];
+      let w;
+      if (q00 !== 255) { w = (1 - tx) * (1 - ty); sum += q00 * w; wsum += w; }
+      if (q01 !== 255) { w = tx * (1 - ty); sum += q01 * w; wsum += w; }
+      if (q10 !== 255) { w = (1 - tx) * ty; sum += q10 * w; wsum += w; }
+      if (q11 !== 255) { w = tx * ty; sum += q11 * w; wsum += w; }
+      const o = (y * W + x) * 4;
+      if (wsum < 0.25) { px[o + 3] = 0; continue; }
+      const v = sum / wsum * scale;
+      const li = Math.min(255, Math.round(v * k)) * 3;
+      px[o] = lut[li]; px[o + 1] = lut[li + 1]; px[o + 2] = lut[li + 2]; px[o + 3] = 215;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  if (!fieldLayer) {
+    fieldLayer = new CanvasOverlay(fieldCanvas, [[b.s, b.w], [b.n, b.e]], { opacity: 1, interactive: false }).addTo(map);
+  }
+  arrows.redraw();
+}
+
+// Riktningspilar i skärmkoordinater
+const ArrowLayer = L.Layer.extend({
+  onAdd(m) {
+    this._c = L.DomUtil.create("canvas", "arrow-layer leaflet-zoom-hide");
+    m.getPanes().overlayPane.appendChild(this._c);
+    m.on("moveend zoomend resize", this.redraw, this);
+    this.redraw();
+  },
+  onRemove(m) { this._c.remove(); m.off("moveend zoomend resize", this.redraw, this); },
+  async redraw() {
+    if (!this._map || !meta) return;
+    const m = this._map, size = m.getSize(), dpr = window.devicePixelRatio || 1, c = this._c;
+    L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0, 0]));
+    c.width = size.x * dpr; c.height = size.y * dpr; c.style.width = size.x + "px"; c.style.height = size.y + "px";
+    const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+    const [dirArr, hArr] = await Promise.all([field(layer.dir), field(layer.id)]);
+    const step = 34;
+    ctx.strokeStyle = "rgba(20,30,45,.75)"; ctx.fillStyle = ctx.strokeStyle; ctx.lineCap = "round";
+    for (let y = step / 2; y < size.y; y += step) for (let x = step / 2; x < size.x; x += step) {
+      const ll = m.containerPointToLatLng([x, y]);
+      const j = Math.round((G.lat0 - ll.lat) / G.dlat), i = Math.round((ll.lng - G.lon0) / G.dlon);
+      if (j < 0 || j >= G.nj || i < 0 || i >= G.ni) continue;
+      const d = val(dirArr, layer.dir, t, j, i), h = val(hArr, layer.id, t, j, i);
+      if (isNaN(d) || isNaN(h)) continue;
+      const a = (d + 180) * Math.PI / 180; // "kommer från" -> färdriktning
+      const len = layer.id === "wind" || layer.id === "mpts" ? 11 : 6 + Math.min(10, h * 4);
+      const dx = Math.sin(a) * len, dy = -Math.cos(a) * len;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(x - dx, y - dy); ctx.lineTo(x + dx, y + dy); ctx.stroke();
+      const ah = 4.5, ang = Math.atan2(dy, dx);
+      ctx.beginPath(); ctx.moveTo(x + dx, y + dy);
+      ctx.lineTo(x + dx - ah * Math.cos(ang - 0.45), y + dy - ah * Math.sin(ang - 0.45));
+      ctx.lineTo(x + dx - ah * Math.cos(ang + 0.45), y + dy - ah * Math.sin(ang + 0.45));
+      ctx.closePath(); ctx.fill();
+    }
+  },
+});
+const arrows = new ArrowLayer();
+
+// --- Punktprognos -------------------------------------------------------
+function nearestSea(lat, lon, arr) {
+  const j0 = Math.round((G.lat0 - lat) / G.dlat), i0 = Math.round((lon - G.lon0) / G.dlon);
+  let best = null;
+  for (let r = 0; r <= 4 && !best; r++) {
+    let bd = Infinity;
+    for (let j = j0 - r; j <= j0 + r; j++) for (let i = i0 - r; i <= i0 + r; i++) {
+      if (j < 0 || j >= G.nj || i < 0 || i >= G.ni) continue;
+      if (arr[j * G.ni + i] === 255) continue;
+      const d = (j - j0) ** 2 + (i - i0) ** 2;
+      if (d < bd) { bd = d; best = [j, i]; }
+    }
+  }
+  return best;
+}
+const compass = d => ["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSV","SV","VSV","V","VNV","NV","NNV"][Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
+
+let marker;
+async function showPoint(name, lat, lon) {
+  const ids = ["shts", "mpts", "mdts", "swh", "pp1d", "mwd", "wind", "dwi"];
+  const A = Object.fromEntries(await Promise.all(ids.map(async id => [id, await field(id)])));
+  const cell = nearestSea(lat, lon, A.shts);
+  const box = document.getElementById("point");
+  if (!cell) { box.style.display = "block"; box.innerHTML = `<h2>${name || "Punkt"}<button class="x" aria-label="Stäng">×</button></h2>Ingen havsruta i närheten.`; box.querySelector(".x").onclick = closePoint; return; }
+  selected = { name, cell, A };
+  const [j, i] = cell;
+  const clat = G.lat0 - j * G.dlat, clon = G.lon0 + i * G.dlon;
+  if (marker) marker.setLatLng([clat, clon]); else marker = L.circleMarker([clat, clon], { radius: 6, color: "#111", weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(map);
+  renderPoint();
+  // håll punkten synlig ovanför panelen på smala skärmar
+  if (innerWidth < 600) {
+    const mapH = map.getSize().y, boxH = document.getElementById("point").offsetHeight;
+    const target = map.latLngToContainerPoint([clat, clon]), wantY = (mapH - boxH - 30) / 2;
+    map.panBy([target.x - map.getSize().x / 2, target.y - wantY], { animate: true });
+  }
+}
+function closePoint() { selected = null; document.getElementById("point").style.display = "none"; document.getElementById("map").classList.remove("has-point"); if (marker) { marker.remove(); marker = null; } document.getElementById("spots").value = ""; }
+
+function renderPoint() {
+  if (!selected) return;
+  const { name, cell: [j, i], A } = selected, box = document.getElementById("point");
+  const v = id => val(A[id], id, t, j, i);
+  const f1 = x => isNaN(x) ? "–" : x.toFixed(1);
+  const W = 336, H = 130, pl = 26, pr = 6, pt = 8, pb = 18;
+  const s1 = [], s2 = [];
+  let ymax = 1;
+  for (let k = 0; k < NT; k++) { const a = val(A.shts, "shts", k, j, i), b = val(A.swh, "swh", k, j, i); s1.push(a); s2.push(b); ymax = Math.max(ymax, a || 0, b || 0); }
+  ymax = Math.ceil(ymax * 2) / 2;
+  const X = k => pl + (W - pl - pr) * k / (NT - 1), Y = v => pt + (H - pt - pb) * (1 - v / ymax);
+  const path = s => s.map((v, k) => isNaN(v) ? "" : `${k && !isNaN(s[k - 1]) ? "L" : "M"}${X(k).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+  let grid = "";
+  for (let g = 0; g <= ymax + 1e-9; g += ymax > 3 ? 1 : 0.5) grid += `<line x1="${pl}" x2="${W - pr}" y1="${Y(g)}" y2="${Y(g)}" stroke="var(--line)"/><text x="${pl - 4}" y="${Y(g) + 3.5}" font-size="10" text-anchor="end" fill="var(--muted)">${g}</text>`;
+  // dygnsgränser (midnatt lokal tid)
+  meta.times.forEach((ts, k) => { if (fmtHour.format(new Date(ts)) === "00:00") grid += `<line x1="${X(k)}" x2="${X(k)}" y1="${pt}" y2="${H - pb}" stroke="var(--line)"/><text x="${X(k) + 3}" y="${H - 5}" font-size="10" fill="var(--muted)">${fmtDay.format(new Date(ts))}</text>`; });
+  box.innerHTML = `
+    <h2>${name || `${(G.lat0 - j * G.dlat).toFixed(2)}° N, ${(G.lon0 + i * G.dlon).toFixed(2)}° Ö`}<button class="x" aria-label="Stäng">×</button></h2>
+    <div class="now">
+      <span>Dyning</span><span><b>${f1(v("shts"))} m</b> · ${f1(v("mpts"))} s · från ${isNaN(v("mdts")) ? "–" : compass(v("mdts"))}</span>
+      <span>Total våghöjd</span><span>${f1(v("swh"))} m · toppperiod ${f1(v("pp1d"))} s · från ${isNaN(v("mwd")) ? "–" : compass(v("mwd"))}</span>
+      <span>Vind</span><span>${f1(v("wind"))} m/s från ${isNaN(v("dwi")) ? "–" : compass(v("dwi"))}</span>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="Våghöjd över tid">
+      ${grid}
+      <path d="${path(s2)}" fill="none" stroke="#9aa8b6" stroke-width="1.5"/>
+      <path d="${path(s1)}" fill="none" stroke="#0b6bcb" stroke-width="2"/>
+      <line x1="${X(t)}" x2="${X(t)}" y1="${pt}" y2="${H - pb}" stroke="#e2452f" stroke-width="1.2"/>
+    </svg>
+    <div class="key"><span><i style="background:#0b6bcb"></i>Dyning (m)</span><span><i style="background:#9aa8b6"></i>Total våghöjd (m)</span></div>`;
+  box.style.display = "block";
+  document.getElementById("map").classList.add("has-point");
+  box.querySelector(".x").onclick = closePoint;
+}
+
+map.on("click", e => { document.getElementById("spots").value = ""; showPoint(null, e.latlng.lat, e.latlng.lng); });
+
+// --- UI -----------------------------------------------------------------
+function renderLegend() {
+  const el = document.getElementById("legend");
+  el.innerHTML = `<div>${layer.name} (${layer.unit})</div><div class="bar" style="background:${gradientCss(layer.stops, layer.max)}"></div>
+    <div class="ticks">${layer.ticks.map(v => `<span>${v}</span>`).join("")}</div>`;
+}
+function setTime(k) {
+  t = Math.max(0, Math.min(NT - 1, k));
+  document.getElementById("slider").value = t;
+  document.getElementById("timelabel").textContent = fmtTime.format(new Date(meta.times[t]));
+  drawField(); renderPoint();
+}
+
+async function init() {
+  const r = await fetch(DATA + "meta.json", { cache: "no-store" });
+  if (!r.ok) throw new Error("meta.json: " + r.status);
+  meta = await r.json(); G = meta.grid; NT = meta.times.length;
+
+  const run = new Date(meta.modelRun), ageH = (Date.now() - run) / 36e5;
+  document.getElementById("runinfo").innerHTML = `DMI WAM · modellkörning ${fmtTime.format(run)}` +
+    (ageH > 18 ? ` · <span class="stale">gammal prognos (${Math.round(ageH)} h)</span>` : "");
+
+  const chips = document.getElementById("layers");
+  LAYERS.forEach(L_ => {
+    const b = document.createElement("button"); b.className = "chip"; b.textContent = L_.name;
+    b.setAttribute("aria-pressed", L_ === layer); b.onclick = () => {
+      layer = L_; [...chips.children].forEach(c => c.setAttribute("aria-pressed", c === b));
+      renderLegend(); drawField();
+    };
+    chips.appendChild(b);
+  });
+  const sel = document.getElementById("spots");
+  SPOTS.forEach(([n], k) => sel.add(new Option(n, k)));
+  sel.onchange = () => { if (sel.value === "") return closePoint(); const [n, la, lo] = SPOTS[+sel.value]; showPoint(n, la, lo); };
+
+  const slider = document.getElementById("slider");
+  slider.max = NT - 1;
+  slider.oninput = () => setTime(+slider.value);
+  // dygnsmarkeringar under reglaget
+  const days = []; meta.times.forEach((ts, k) => { if (fmtHour.format(new Date(ts)) === "12:00") days.push(fmtDay.format(new Date(ts))); });
+  document.getElementById("days").innerHTML = days.map(d => `<span>${d}</span>`).join("");
+
+  const play = document.getElementById("play");
+  play.onclick = () => {
+    if (playing) { clearInterval(playing); playing = null; play.textContent = "▶"; play.setAttribute("aria-label", "Spela upp"); return; }
+    play.textContent = "❚❚"; play.setAttribute("aria-label", "Pausa");
+    playing = setInterval(() => setTime(t >= NT - 1 ? 0 : t + 1), 350);
+  };
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (e.key === "ArrowRight") setTime(t + 1); if (e.key === "ArrowLeft") setTime(t - 1);
+  });
+
+  // starta på tidssteget närmast nu
+  const now = Date.now(); let k0 = 0;
+  meta.times.forEach((ts, k) => { if (new Date(ts) <= now) k0 = k; });
+  renderLegend();
+  arrows.addTo(map);
+  setTime(k0);
+}
+init().catch(e => { document.getElementById("runinfo").innerHTML = `<span class="stale">Kunde inte ladda prognosen: ${e.message}</span>`; console.error(e); });
+</script>
+</body>
+</html>
