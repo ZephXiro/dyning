@@ -141,6 +141,46 @@ def quantize(a, scale, is_dir):
     return q
 
 
+DIR_FIELDS = ("mdts", "mwd", "dwi")
+
+
+def fields_meta():
+    return {k: {"scale": sc, "label": lb, "dir": k in DIR_FIELDS} for k, (sc, lb) in FIELDS.items()}
+
+
+def complete_runs(back=8):
+    """Kompletta körningar som fortfarande finns i API:t, äldst först."""
+    now = dt.datetime.now(dt.timezone.utc)
+    run = now.replace(minute=0, second=0, microsecond=0, hour=now.hour // 6 * 6)
+    out = []
+    for _ in range(back):
+        feats = items_for_run(run)
+        if len(feats) >= EXPECTED_STEPS:
+            out.append((run, sorted(feats, key=lambda x: x["properties"]["datetime"])))
+        run -= dt.timedelta(hours=6)
+    return out[::-1]
+
+
+def load_run(feats, workers=8):
+    """Laddar ner en körning och returnerar (tider, rutnät, {fält: float32[t, j, i]})."""
+    times = [x["properties"]["datetime"] for x in feats]
+    with tempfile.TemporaryDirectory() as tmp:
+        paths = [os.path.join(tmp, f"{k:03d}.grib") for k in range(len(feats))]
+        print(f"  laddar ner {len(feats)} filer …")
+        with cf.ThreadPoolExecutor(workers) as ex:
+            list(ex.map(download, [x["asset"]["data"]["href"] for x in feats], paths))
+        crop, grid = grid_info(paths[0])
+        cube = {k: np.full((len(paths), grid["nj"], grid["ni"]), np.nan, np.float32) for k in FIELDS}
+        for t, p in enumerate(paths):
+            for k, v in read_grib(p, crop).items():
+                cube[k][t] = v
+    return times, grid, cube
+
+
+def quantize_cube(cube):
+    return {k: quantize(cube[k], FIELDS[k][0], k in DIR_FIELDS) for k in FIELDS}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="site/data")
@@ -150,27 +190,10 @@ def main():
 
     run, feats = latest_complete_run()
     feats.sort(key=lambda x: x["properties"]["datetime"])
-    times = [x["properties"]["datetime"] for x in feats]
-
-    with tempfile.TemporaryDirectory() as tmp:
-        paths = [os.path.join(tmp, f"{k:03d}.grib") for k in range(len(feats))]
-        print(f"Laddar ner {len(feats)} filer …")
-        with cf.ThreadPoolExecutor(args.workers) as ex:
-            list(ex.map(download, [x["asset"]["data"]["href"] for x in feats], paths))
-
-        crop, grid = grid_info(paths[0])
-        print("Rutnät:", grid)
-        cube = {k: np.full((len(paths), grid["nj"], grid["ni"]), np.nan, np.float32) for k in FIELDS}
-        for t, p in enumerate(paths):
-            for k, v in read_grib(p, crop).items():
-                cube[k][t] = v
-
-    fields_meta = {}
-    for k, (scale, label) in FIELDS.items():
-        is_dir = k in ("mdts", "mwd", "dwi")
-        q = quantize(cube[k], scale, is_dir)
+    times, grid, cube = load_run(feats, args.workers)
+    print("Rutnät:", grid)
+    for k, q in quantize_cube(cube).items():
         q.tofile(os.path.join(args.out, f"{k}.bin"))
-        fields_meta[k] = {"scale": scale, "label": label, "dir": is_dir}
 
     meta = {
         "source": "DMI WAM (wam_nsb), DMI Open Data",
@@ -178,7 +201,7 @@ def main():
         "generated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "times": times,
         "grid": grid,
-        "fields": fields_meta,
+        "fields": fields_meta(),
     }
     with open(os.path.join(args.out, "meta.json"), "w") as f:
         json.dump(meta, f, ensure_ascii=False)

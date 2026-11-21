@@ -30,13 +30,23 @@
   .chip { border: 1px solid var(--line); background: var(--chip); color: var(--fg);
     border-radius: 999px; padding: 5px 11px; font-size: 13px; cursor: pointer; white-space: nowrap; }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .time { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .time { display: flex; align-items: flex-start; gap: 10px; margin-top: 8px; }
+  .track { flex: 1; min-width: 0; position: relative; padding-bottom: 30px; }
+  .track input { width: 100%; margin: 9px 0 0; display: block; }
+  .seg { position: absolute; left: 8px; right: 8px; top: 30px; height: 4px; border-radius: 2px; }
+  .nowmark { position: absolute; top: 25px; width: 2px; height: 14px; background: var(--fg); border-radius: 1px; transform: translateX(-1px); }
+  .days { position: absolute; left: 8px; right: 8px; top: 36px; height: 14px; color: var(--muted); font-size: 11px; }
+  .days span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 999px;
+    margin-left: 6px; vertical-align: 1px; }
+  .tag.a { background: #e6e3dc; color: #4a463e; } .tag.f { background: #dbe9fb; color: #0c447c; }
+  .tag.m { background: #fbe3e0; color: #8a2a1c; }
+  input[type=date] { font: inherit; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--chip); color: var(--fg); }
   #play { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line);
     background: var(--chip); color: var(--fg); font-size: 15px; cursor: pointer; flex: none; }
   #slider { flex: 1; min-width: 0; accent-color: var(--accent); }
-  #timelabel { font-variant-numeric: tabular-nums; min-width: 128px; text-align: right; font-weight: 600; }
-  .days { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px;
-    margin: 2px 46px 0 46px; }
+  #timelabel { font-variant-numeric: tabular-nums; min-width: 150px; text-align: right; font-weight: 600; padding-top: 8px; }
   .legend { position: absolute; z-index: 500; left: 10px; bottom: 10px; background: var(--panel);
     border-radius: 8px; padding: 6px 8px 4px; box-shadow: 0 1px 4px rgba(0,0,0,.2); font-size: 11.5px; }
   .legend .lt { margin-bottom: 3px; font-weight: 600; }
@@ -53,21 +63,31 @@
     transform: translate(12px, -50%); font-variant-numeric: tabular-nums; }
   #point { position: absolute; z-index: 600; right: 10px; top: 10px; width: min(360px, calc(100% - 20px));
     background: var(--panel); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.25);
-    padding: 10px 12px; display: none; }
+    padding: 10px 12px; display: none; max-height: calc(100% - 20px); overflow-y: auto; }
   #point h2 { font-size: 14px; margin: 0 0 4px; display: flex; justify-content: space-between; }
   #point button.x { border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; }
   #point .now { display: grid; grid-template-columns: auto auto; gap: 1px 12px; font-size: 13px; margin-bottom: 6px; }
   #point .now span:nth-child(odd) { color: var(--muted); }
   #point svg { width: 100%; height: 130px; display: block; }
-  #point .key { font-size: 11.5px; color: var(--muted); display: flex; gap: 12px; }
-  #point .key i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  #point .key { font-size: 11.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 12px; }
+  #point .key i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 4px; }
+  #point .tabs { display: flex; gap: 6px; margin: 4px 0 6px; }
+  #point .tabs .chip { padding: 3px 10px; font-size: 12px; }
+  #point .chk { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; margin-top: 4px; }
+  #point h3 { font-size: 12.5px; margin: 10px 0 3px; font-weight: 600; }
+  #point table { border-collapse: collapse; font-size: 12.5px; width: 100%; font-variant-numeric: tabular-nums; }
+  #point td, #point th { padding: 2px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+  #point td:first-child, #point th:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  #point .note { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
   select { font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--chip); color: var(--fg); }
   .leaflet-container { font: inherit; }
   @media (max-width: 600px) {
+    .time { flex-wrap: wrap; row-gap: 0; }
+    #timelabel { order: -1; width: 100%; text-align: left; padding-top: 0; min-width: 0; }
     /* platspanelen ligger nederst i mobilen och skulle täcka legenden */
     #map.has-point .legend { display: none; }
-    #point { top: auto; bottom: 30px; left: 8px; right: 8px; width: auto; padding: 8px 10px; }
+    #point { top: auto; bottom: 30px; left: 8px; right: 8px; width: auto; padding: 8px 10px; max-height: 62%; }
     #point svg { height: 95px; }
     #timelabel { min-width: 0; font-size: 13px; }
     .days { margin: 2px 0 0 46px; }
@@ -91,13 +111,21 @@
     <div class="row">
       <div class="chips" id="layers" role="group" aria-label="Lager"></div>
       <select id="spots" aria-label="Välj plats"><option value="">Plats …</option></select>
+      <span id="histctl" class="row" hidden>
+        <input type="date" id="datum" aria-label="Visa historik från datum">
+        <button class="chip" id="nu">Nu</button>
+      </span>
     </div>
     <div class="time">
       <button id="play" aria-label="Spela upp">▶</button>
-      <input type="range" id="slider" min="0" max="0" value="0" aria-label="Tid">
+      <div class="track">
+        <input type="range" id="slider" min="0" max="0" value="0" aria-label="Tid">
+        <div class="seg" id="seg"></div>
+        <div class="nowmark" id="nowmark" hidden></div>
+        <div class="days" id="days"></div>
+      </div>
       <span id="timelabel">–</span>
     </div>
-    <div class="days" id="days"></div>
   </div>
 </div>
 
@@ -126,30 +154,93 @@ const LAYERS = [
     colors: ["#f2f6f9", "#cfe6f5", "#93c9ec", "#4f9fdc", "#1b9a74", "#74c043", "#e3dc2b", "#f9ad2a", "#f06a1d", "#cf2a22", "#8e0f5e"] },
 ];
 
-const SPOTS = [
-  ["Mölle / Kullen", 56.28, 12.45], ["Torekov", 56.43, 12.58], ["Falsterbo", 55.39, 12.80],
-  ["Trelleborg", 55.35, 13.15], ["Ystad", 55.40, 13.82], ["Kåseberga", 55.37, 14.07],
-  ["Sandhammaren", 55.37, 14.21], ["Simrishamn", 55.55, 14.38], ["Åhus", 55.94, 14.34],
-  ["Hanö", 56.00, 14.86], ["Bornholm, Rønne", 55.10, 14.65], ["Bornholm, Dueodde", 54.98, 15.08],
-];
+let SPOTS = [];
 
 function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function classOf(v, edges) { let c = 0; while (c < edges.length && v >= edges[c]) c++; return c; }
 const fmtNum = v => String(v).replace(".", ",");
+const H1 = 36e5, D1 = 24 * H1;
+
+// Arkivet (dyning-arkiv). ?arkiv=... byter källa, t.ex. för lokal test.
+const ARKIV = new URLSearchParams(location.search).get("arkiv") || "https://raw.githubusercontent.com/ZephXiro/dyning-arkiv/main/";
 
 // --- Tillstånd ----------------------------------------------------------
+// meta = prognosens meta.json. TL = tidslinjen: arkivtimmar + prognos.
 let meta, G, NT, layer = LAYERS[0], t = 0, playing = null, selected = null;
-const cache = {};
+let arch = null;           // { meta, runs:Set, list:[ms] } eller null om arkivet saknas
+let TL = null, tlVer = 0;  // { times:[ms], src:['a'|'f'|'-'], run:[ms], off:[h], fcIdx, nowIdx }
+const cache = {}, archFiles = {}, fcFiles = {}, monthFiles = {};
+let stats = null;
 
-async function field(id) {
-  if (!cache[id]) cache[id] = fetch(DATA + id + ".bin?v=" + encodeURIComponent(meta.generated))
+async function getJSON(url, opts) {
+  const r = await fetch(url, opts); if (!r.ok) throw new Error(url.split("/").pop() + ": " + r.status); return r.json();
+}
+async function gunzip(buf) {
+  const u = new Uint8Array(buf);
+  if (u[0] !== 0x1f || u[1] !== 0x8b) return u; // redan uppackad av servern
+  const ds = new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return new Uint8Array(await new Response(ds).arrayBuffer());
+}
+const pad = n => String(n).padStart(2, "0");
+const runPath = (ms, dir, ext) => { const d = new Date(ms);
+  return `${dir}/${d.getUTCFullYear()}/${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())}/${pad(d.getUTCHours())}z.${ext}`; };
+function archFile(ms) {
+  return archFiles[ms] ||= fetch(ARKIV + runPath(ms, "falt", "bin.gz"))
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then(gunzip).catch(() => null);
+}
+function fcFile(ms) {
+  return fcFiles[ms] ||= getJSON(ARKIV + runPath(ms, "prognoser", "json")).catch(() => null);
+}
+function monthFile(key) { return monthFiles[key] ||= getJSON(ARKIV + `punkter/${key}.json`).catch(() => null); }
+
+async function fcField(id) {
+  return cache["fc:" + id] ||= fetch(DATA + id + ".bin?v=" + encodeURIComponent(meta.generated))
     .then(r => { if (!r.ok) throw new Error(id + ": " + r.status); return r.arrayBuffer(); })
     .then(b => new Uint8Array(b));
-  return cache[id];
+}
+// Ett fält över hela tidslinjen (arkiv + prognos sammanfogat)
+async function field(id) {
+  const key = tlVer + ":" + id;
+  return cache[key] ||= (async () => {
+    const C = G.nj * G.ni, out = new Uint8Array(NT * C).fill(255);
+    const fi = arch ? arch.meta.order.indexOf(id) : -1, oh = arch ? arch.meta.outcomeHours : 0;
+    const need = [...new Set(TL.run.filter((r, k) => TL.src[k] === "a"))];
+    const bufs = Object.fromEntries(await Promise.all(need.map(async r => [r, await archFile(r)])));
+    const fc = TL.fcIdx < NT ? await fcField(id) : null;
+    for (let k = 0; k < NT; k++) {
+      if (TL.src[k] === "a") {
+        const b = bufs[TL.run[k]]; if (!b || fi < 0) continue;
+        out.set(b.subarray((fi * oh + TL.off[k]) * C, (fi * oh + TL.off[k] + 1) * C), k * C);
+      } else if (TL.src[k] === "f") {
+        out.set(fc.subarray(TL.off[k] * C, (TL.off[k] + 1) * C), k * C);
+      }
+    }
+    return out;
+  })();
 }
 function val(arr, id, tt, j, i) {
   const q = arr[(tt * G.nj + j) * G.ni + i];
   return q === 255 ? NaN : q * meta.fields[id].scale;
+}
+
+// Bygg tidslinjen. start = null -> 7 dygn bakåt från prognosens start + hela prognosen.
+function buildTimeline(start) {
+  const fcT = meta.times.map(x => Date.parse(x)), fc0 = fcT[0];
+  const times = [], src = [], run = [], off = [];
+  let s = start ?? fc0 - 7 * D1, end = fc0, withFc = true;
+  if (arch) {
+    s = Math.max(s, arch.list[0]);
+    if (start != null && s + 7 * D1 < fc0) { end = s + 7 * D1; withFc = false; }
+    for (let h = Math.floor(s / H1) * H1; h < end; h += H1) {
+      const r = Math.floor(h / (6 * H1)) * 6 * H1;
+      times.push(h); run.push(r); off.push((h - r) / H1); src.push(arch.runs.has(r) ? "a" : "-");
+    }
+  }
+  const fcIdx = times.length;
+  if (withFc) fcT.forEach((ms, k) => { times.push(ms); src.push("f"); run.push(fc0); off.push(k); });
+  const now = Date.now(); let nowIdx = -1;
+  times.forEach((ms, k) => { if (ms <= now) nowIdx = k; });
+  TL = { times, src, run, off, fcIdx, nowIdx }; NT = times.length; tlVer++;
 }
 
 // --- Tid ----------------------------------------------------------------
@@ -253,7 +344,7 @@ const ArrowLayer = L.Layer.extend({
   },
   onRemove(m) { this._c.remove(); m.off("moveend zoomend resize", this.redraw, this); },
   async redraw() {
-    if (!this._map || !meta) return;
+    if (!this._map || !TL) return;
     const m = this._map, size = m.getSize(), dpr = window.devicePixelRatio || 1, c = this._c;
     L.DomUtil.setPosition(c, m.containerPointToLayerPoint([0, 0]));
     c.width = size.x * dpr; c.height = size.y * dpr; c.style.width = size.x + "px"; c.style.height = size.y + "px";
@@ -301,17 +392,16 @@ const compass = d => ["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSV","SV","
 
 let marker;
 async function showPoint(name, lat, lon) {
-  const ids = ["shts", "mpts", "mdts", "swh", "pp1d", "mwd", "wind", "dwi"];
-  const A = Object.fromEntries(await Promise.all(ids.map(async id => [id, await field(id)])));
-  const cell = nearestSea(lat, lon, A.shts);
+  const cell = nearestSea(lat, lon, await fcField("shts")); // första prognostimmen som landmask
   const box = document.getElementById("point");
   if (!cell) { box.style.display = "block"; box.innerHTML = `<h2>${name || "Punkt"}<button class="x" aria-label="Stäng">×</button></h2>Ingen havsruta i närheten.`; box.querySelector(".x").onclick = closePoint; return; }
-  selected = { name, cell, A };
+  // är rutan en av de fasta platserna? då finns arkivdata för långa perioder
+  const spot = arch && arch.meta.spots.find(s => s[3] && s[3][0] === cell[0] && s[3][1] === cell[1]);
+  selected = { name: name || (spot && spot[0]) || null, spot: spot ? spot[0] : null, cell, tab: selected?.tab || "graf", showOld: selected?.showOld ?? true, period: selected?.period || 30 };
   const [j, i] = cell;
   const clat = G.lat0 - j * G.dlat, clon = G.lon0 + i * G.dlon;
   if (marker) marker.setLatLng([clat, clon]); else marker = L.circleMarker([clat, clon], { radius: 6, color: "#111", weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(map);
-  renderPoint();
-  // håll punkten synlig ovanför panelen på smala skärmar
+  await renderPoint();
   if (innerWidth < 600) {
     const mapH = map.getSize().y, boxH = document.getElementById("point").offsetHeight;
     const target = map.latLngToContainerPoint([clat, clon]), wantY = (mapH - boxH - 30) / 2;
@@ -320,45 +410,146 @@ async function showPoint(name, lat, lon) {
 }
 function closePoint() { selected = null; document.getElementById("point").style.display = "none"; document.getElementById("map").classList.remove("has-point"); if (marker) { marker.remove(); marker = null; } document.getElementById("spots").value = ""; }
 
-function renderPoint() {
-  if (!selected) return;
-  const { name, cell: [j, i], A } = selected, box = document.getElementById("point");
-  const v = id => val(A[id], id, t, j, i);
-  const f1 = x => isNaN(x) ? "–" : x.toFixed(1);
-  const W = 336, H = 130, pl = 26, pr = 6, pt = 8, pb = 18;
-  const s1 = [], s2 = [];
-  let ymax = 1;
-  for (let k = 0; k < NT; k++) { const a = val(A.shts, "shts", k, j, i), b = val(A.swh, "swh", k, j, i); s1.push(a); s2.push(b); ymax = Math.max(ymax, a || 0, b || 0); }
+// Tidigare prognoser för en plats. För varje arkivtimme V och ledtid L används
+// den senaste körningen R som var minst L timmar gammal (R <= V - L).
+async function oldForecasts(spot, leads) {
+  const out = Object.fromEntries(leads.map(l => [l, new Array(NT).fill(NaN)]));
+  if (!arch || !spot) return out;
+  const want = new Set();
+  for (let k = 0; k < TL.fcIdx; k++) if (TL.src[k] === "a")
+    for (const l of leads) { const r = Math.floor((TL.times[k] - l * H1) / (6 * H1)) * 6 * H1; if (arch.runs.has(r)) want.add(r); }
+  const runs = [...want], files = await Promise.all(runs.map(fcFile)), byRun = new Map(runs.map((r, n) => [r, files[n]]));
+  const sc = meta.fields.shts.scale;
+  for (let k = 0; k < TL.fcIdx; k++) {
+    if (TL.src[k] !== "a") continue;
+    for (const l of leads) {
+      const r = Math.floor((TL.times[k] - l * H1) / (6 * H1)) * 6 * H1, f = byRun.get(r);
+      const v = f && f.values[spot]; if (!v) continue;
+      const q = v.shts[(TL.times[k] - r) / H1]; if (q != null) out[l][k] = q * sc;
+    }
+  }
+  return out;
+}
+
+const OLD = [[24, "#1baf7a", "1 dygn innan"], [72, "#eda100", "3 dygn innan"], [120, "#eb6834", "5 dygn innan"]];
+
+function svgChart({ series, n, X0 = 0, marks = [], dayTicks, W = 336, H = 130 }) {
+  const pl = 26, pr = 6, pt = 8, pb = 18;
+  let ymax = 1; series.forEach(s => s.data.forEach(v => { if (!isNaN(v)) ymax = Math.max(ymax, v); }));
   ymax = Math.ceil(ymax * 2) / 2;
-  const X = k => pl + (W - pl - pr) * k / (NT - 1), Y = v => pt + (H - pt - pb) * (1 - v / ymax);
-  const path = s => s.map((v, k) => isNaN(v) ? "" : `${k && !isNaN(s[k - 1]) ? "L" : "M"}${X(k).toFixed(1)},${Y(v).toFixed(1)}`).join("");
-  let grid = "";
-  for (let g = 0; g <= ymax + 1e-9; g += ymax > 3 ? 1 : 0.5) grid += `<line x1="${pl}" x2="${W - pr}" y1="${Y(g)}" y2="${Y(g)}" stroke="var(--line)"/><text x="${pl - 4}" y="${Y(g) + 3.5}" font-size="10" text-anchor="end" fill="var(--muted)">${g}</text>`;
-  // dygnsgränser (midnatt lokal tid)
-  meta.times.forEach((ts, k) => { if (fmtHour.format(new Date(ts)) === "00:00") grid += `<line x1="${X(k)}" x2="${X(k)}" y1="${pt}" y2="${H - pb}" stroke="var(--line)"/><text x="${X(k) + 3}" y="${H - 5}" font-size="10" fill="var(--muted)">${fmtDay.format(new Date(ts))}</text>`; });
+  const X = k => pl + (W - pl - pr) * k / Math.max(1, n - 1), Y = v => pt + (H - pt - pb) * (1 - v / ymax);
+  const path = (s, from = 0, to = n) => { let d = "", pen = false;
+    for (let k = from; k < to; k++) { const v = s[k]; if (isNaN(v)) { pen = false; continue; }
+      d += `${pen ? "L" : "M"}${X(k).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; } return d; };
+  let g = "";
+  for (let y = 0; y <= ymax + 1e-9; y += ymax > 3 ? 1 : 0.5) g += `<line x1="${pl}" x2="${W - pr}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--line)"/><text x="${pl - 4}" y="${Y(y) + 3.5}" font-size="10" text-anchor="end" fill="var(--muted)">${fmtNum(y)}</text>`;
+  (dayTicks || []).forEach(([k, lab]) => g += `<line x1="${X(k)}" x2="${X(k)}" y1="${pt}" y2="${H - pb}" stroke="var(--line)"/><text x="${X(k) + 2}" y="${H - 5}" font-size="10" fill="var(--muted)">${lab}</text>`);
+  series.forEach(s => (s.parts || [[0, n, s.dash || ""]]).forEach(([a, b, dash]) => {
+    g += `<path d="${path(s.data, a, b)}" fill="none" stroke="${s.color}" stroke-width="${s.w || 1.8}" stroke-dasharray="${dash}" stroke-linejoin="round" stroke-linecap="round"/>`; }));
+  marks.forEach(([k, color, dash, lab]) => { if (k < 0 || k >= n) return;
+    g += `<line x1="${X(k)}" x2="${X(k)}" y1="${pt}" y2="${H - pb}" stroke="${color}" stroke-width="1.2" stroke-dasharray="${dash || ""}"/>` +
+      (lab ? `<text x="${X(k) + 2}" y="${pt + 8}" font-size="10" fill="${color}">${lab}</text>` : ""); });
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}</svg>`;
+}
+
+async function renderPoint() {
+  if (!selected) return;
+  const sel = selected, { cell: [j, i] } = sel, box = document.getElementById("point");
+  const ids = ["shts", "mpts", "mdts", "swh", "pp1d", "mwd", "wind", "dwi"];
+  const A = Object.fromEntries(await Promise.all(ids.map(async id => [id, await field(id)])));
+  if (sel !== selected) return;
+  const v = id => val(A[id], id, t, j, i);
+  const f1 = x => isNaN(x) ? "–" : x.toFixed(1).replace(".", ",");
+  const title = sel.name || `${(G.lat0 - j * G.dlat).toFixed(2)}° N, ${(G.lon0 + i * G.dlon).toFixed(2)}° Ö`;
+  const tabs = arch ? `<div class="tabs"><button class="chip" data-tab="graf" aria-pressed="${sel.tab === "graf"}">Graf</button><button class="chip" data-tab="stat" aria-pressed="${sel.tab === "stat"}">Statistik</button></div>` : "";
+  let body = "";
+  if (sel.tab === "stat" && arch) body = await statBody(sel);
+  else {
+    const s1 = [], s2 = [];
+    for (let k = 0; k < NT; k++) { s1.push(val(A.shts, "shts", k, j, i)); s2.push(val(A.swh, "swh", k, j, i)); }
+    const fcI = TL.fcIdx, parts = [[0, Math.min(fcI + 1, NT), ""], [fcI, NT, "4 3"]];
+    const series = [{ data: s2, color: "#9aa8b6", w: 1.5, parts }, { data: s1, color: "#0b6bcb", w: 2, parts }];
+    let oldKey = "";
+    if (sel.spot && fcI > 0) {
+      if (sel.showOld) {
+        const old = await oldForecasts(sel.spot, OLD.map(o => o[0]));
+        if (sel !== selected) return;
+        OLD.forEach(([l, c]) => series.push({ data: old[l], color: c, w: 1.5, dash: "3 3" }));
+      }
+      oldKey = `<label class="chk"><input type="checkbox" id="showold" ${sel.showOld ? "checked" : ""}> Jämför dyningen med tidigare prognoser</label>`;
+    }
+    const ticks = []; TL.times.forEach((ms, k) => { if (fmtHour.format(new Date(ms)) === "00:00") ticks.push([k, fmtDay.format(new Date(ms))]); });
+    const thin = ticks.length > 7 ? ticks.filter((_, n) => n % 2 === 0) : ticks;
+    body = svgChart({ series, n: NT, dayTicks: thin, marks: [[TL.nowIdx, "var(--fg)", "2 2", "nu"], [t, "#e2452f"]] }) +
+      `<div class="key"><span><i style="border-color:#0b6bcb"></i>Dyning (m)</span><span><i style="border-color:#9aa8b6"></i>Total våghöjd</span>` +
+      (fcI < NT && fcI > 0 ? `<span><i style="border-color:#0b6bcb;border-top-style:dashed"></i>prognos</span>` : "") +
+      (sel.spot && sel.showOld && fcI > 0 ? OLD.map(([, c, lab]) => `<span><i style="border-color:${c};border-top-style:dotted"></i>${lab}</span>`).join("") : "") + `</div>` + oldKey;
+  }
+  const missing = TL.src[t] === "-";
   box.innerHTML = `
-    <h2>${name || `${(G.lat0 - j * G.dlat).toFixed(2)}° N, ${(G.lon0 + i * G.dlon).toFixed(2)}° Ö`}<button class="x" aria-label="Stäng">×</button></h2>
-    <div class="now">
+    <h2>${title}<button class="x" aria-label="Stäng">×</button></h2>
+    <div class="now">${missing ? `<span>Data</span><span>saknas för denna timme</span>` : `
       <span>Dyning</span><span><b>${f1(v("shts"))} m</b> · ${f1(v("mpts"))} s · från ${isNaN(v("mdts")) ? "–" : compass(v("mdts"))}</span>
       <span>Total våghöjd</span><span>${f1(v("swh"))} m · toppperiod ${f1(v("pp1d"))} s · från ${isNaN(v("mwd")) ? "–" : compass(v("mwd"))}</span>
-      <span>Vind</span><span>${f1(v("wind"))} m/s från ${isNaN(v("dwi")) ? "–" : compass(v("dwi"))}</span>
-    </div>
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="Våghöjd över tid">
-      ${grid}
-      <path d="${path(s2)}" fill="none" stroke="#9aa8b6" stroke-width="1.5"/>
-      <path d="${path(s1)}" fill="none" stroke="#0b6bcb" stroke-width="2"/>
-      <line x1="${X(t)}" x2="${X(t)}" y1="${pt}" y2="${H - pb}" stroke="#e2452f" stroke-width="1.2"/>
-    </svg>
-    <div class="key"><span><i style="background:#0b6bcb"></i>Dyning (m)</span><span><i style="background:#9aa8b6"></i>Total våghöjd (m)</span></div>`;
+      <span>Vind</span><span>${f1(v("wind"))} m/s från ${isNaN(v("dwi")) ? "–" : compass(v("dwi"))}</span>`}
+    </div>${tabs}${body}`;
   box.style.display = "block";
   document.getElementById("map").classList.add("has-point");
   box.querySelector(".x").onclick = closePoint;
+  box.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { sel.tab = b.dataset.tab; renderPoint(); });
+  box.querySelectorAll("[data-period]").forEach(b => b.onclick = () => { sel.period = +b.dataset.period; renderPoint(); });
+  const so = box.querySelector("#showold"); if (so) so.onchange = () => { sel.showOld = so.checked; renderPoint(); };
+}
+
+// Statistikflik: lång tidsserie, andel tid över gränser, prognosfel per dygn
+async function statBody(sel) {
+  if (!sel.spot) return `<div class="note">Statistik finns för de fasta platserna i listan. Välj en av dem, eller klicka nära en av dem.</div>`;
+  const days = sel.period, end = Date.now(), start = end - days * D1;
+  const keys = []; for (let d = new Date(Date.UTC(new Date(start).getUTCFullYear(), new Date(start).getUTCMonth(), 1)); d <= end; d.setUTCMonth(d.getUTCMonth() + 1))
+    keys.push(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`);
+  const months = (await Promise.all(keys.map(monthFile))).filter(Boolean);
+  stats ||= getJSON(ARKIV + "statistik.json").catch(() => null);
+  const st = await stats;
+  const sc = meta.fields.shts.scale, s1 = [], s2 = [], tms = [];
+  months.forEach(m => { const m0 = Date.parse(m.start), vals = m.values[sel.spot]; if (!vals) return;
+    for (let h = 0; h < m.hours; h++) { const ms = m0 + h * H1; if (ms < start || ms > end) continue;
+      tms.push(ms); s1.push(vals.shts[h] == null ? NaN : vals.shts[h] * sc); s2.push(vals.swh[h] == null ? NaN : vals.swh[h] * sc); } });
+  const per = `<div class="tabs">${[[30, "30 dygn"], [365, "1 år"]].map(([d, l]) => `<button class="chip" data-period="${d}" aria-pressed="${days === d}">${l}</button>`).join("")}</div>`;
+  const okN = s1.filter(x => !isNaN(x)).length;
+  let html = per;
+  if (!okN) html += `<div class="note">Inget arkiv för perioden än.</div>`;
+  else {
+    const ticks = []; let lastM = -1;
+    tms.forEach((ms, k) => { const d = new Date(ms);
+      if (days <= 31 ? (d.getUTCHours() === 0 && d.getUTCDate() % 7 === 1) : (d.getUTCMonth() !== lastM && d.getUTCDate() === 1 && d.getUTCHours() === 0)) ticks.push([k, days <= 31 ? fmtDay.format(d) : d.toLocaleDateString("sv-SE", { month: "short" })]);
+      lastM = d.getUTCMonth(); });
+    html += svgChart({ series: [{ data: s2, color: "#9aa8b6", w: 1.2 }, { data: s1, color: "#0b6bcb", w: 1.5 }], n: tms.length, dayTicks: ticks }) +
+      `<div class="key"><span><i style="border-color:#0b6bcb"></i>Dyning (m)</span><span><i style="border-color:#9aa8b6"></i>Total våghöjd</span></div>`;
+    const share = (s, lim) => { const ok = s.filter(x => !isNaN(x)); return ok.length ? Math.round(100 * ok.filter(x => x > lim).length / ok.length) + " %" : "–"; };
+    html += `<h3>Andel av tiden</h3><table><tr><th></th><th>Dyning</th><th>Total</th></tr>` +
+      [0.5, 1, 1.5, 2].map(l => `<tr><td>över ${fmtNum(l)} m</td><td>${share(s1, l)}</td><td>${share(s2, l)}</td></tr>`).join("") + `</table>` +
+      `<div class="note">Baserat på ${okN} timmar (${Math.round(okN / 24)} dygn) i arkivet.</div>`;
+  }
+  // prognosfel per dygn framåt
+  const e = st && st.spots[sel.spot] && st.spots[sel.spot].shts;
+  html += `<h3>Prognosens fel för dyning, senaste ${st ? st.days : 30} dygnen</h3>`;
+  if (!e) html += `<div class="note">För lite arkiv än – fylls på efter några dygn.</div>`;
+  else {
+    const rows = [1, 2, 3, 4, 5].map(d => e[d] ? [d, e[d]] : null).filter(Boolean);
+    const max = Math.max(0.1, ...rows.map(([, x]) => x.mae));
+    html += `<svg viewBox="0 0 336 ${rows.length * 20 + 4}">` + rows.map(([d, x], n) => {
+      const w = 210 * x.mae / max, y = n * 20 + 2;
+      return `<text x="0" y="${y + 12}" font-size="11" fill="var(--muted)">${d} dygn</text><rect x="52" y="${y + 2}" width="${w.toFixed(1)}" height="13" rx="3" fill="#2a78d6"/>` +
+        `<text x="${(58 + w).toFixed(1)}" y="${y + 12}" font-size="11" fill="var(--fg)">${Math.round(x.mae * 100)} cm${x.bias > 0.02 ? " (för högt)" : x.bias < -0.02 ? " (för lågt)" : ""}</text>`;
+    }).join("") + `</svg><div class="note">Genomsnittlig skillnad mellan prognosen och det som blev. Antal jämförelser: ${rows.map(([d, x]) => d + " d: " + x.n).join(", ")}.</div>`;
+  }
+  return html;
 }
 
 // visa värdet under muspekaren (dator)
 const hoverEl = document.getElementById("hover");
 map.on("mousemove", async e => {
-  if (!meta) return;
+  if (!TL) return;
   const arr = await field(layer.id);
   const j = Math.round((G.lat0 - e.latlng.lat) / G.dlat), i = Math.round((e.latlng.lng - G.lon0) / G.dlon);
   const v = (j >= 0 && j < G.nj && i >= 0 && i < G.ni) ? val(arr, layer.id, t, j, i) : NaN;
@@ -379,20 +570,59 @@ function renderLegend() {
     <div class="steps">${layer.colors.map(c => `<span style="background:${c}"></span>`).join("")}</div>
     <div class="slabels">${layer.edges.map((e, k) => `<span style="left:${((k + 1) / n * 100).toFixed(2)}%">${fmtNum(e)}</span>`).join("")}</div>`;
 }
+function timeTag(k) {
+  const s = TL.src[k];
+  return s === "a" ? `<span class="tag a">historik</span>` : s === "f" ? `<span class="tag f">prognos</span>` : `<span class="tag m">saknas</span>`;
+}
 function setTime(k) {
   t = Math.max(0, Math.min(NT - 1, k));
   document.getElementById("slider").value = t;
-  document.getElementById("timelabel").textContent = fmtTime.format(new Date(meta.times[t]));
+  document.getElementById("timelabel").innerHTML = fmtTime.format(new Date(TL.times[t])) + timeTag(t);
   drawField(); renderPoint();
+}
+// reglage: historik grå, prognos blå, markering för nu, dagsetiketter
+function renderTrack() {
+  const slider = document.getElementById("slider");
+  slider.max = NT - 1;
+  const pct = k => (k / Math.max(1, NT - 1) * 100).toFixed(2) + "%";
+  const f = TL.fcIdx;
+  document.getElementById("seg").style.background = f >= NT ? "#b9b4aa" : f <= 0 ? "#7fb2ea"
+    : `linear-gradient(to right, #b9b4aa 0 ${pct(f)}, #7fb2ea ${pct(f)} 100%)`;
+  const nm = document.getElementById("nowmark");
+  nm.hidden = TL.nowIdx < 0 || TL.nowIdx >= NT - 1;
+  nm.style.left = `calc(8px + (100% - 16px) * ${TL.nowIdx / Math.max(1, NT - 1)})`;
+  const labs = []; TL.times.forEach((ms, k) => { if (fmtHour.format(new Date(ms)) === "12:00") labs.push([k, fmtDay.format(new Date(ms))]); });
+  const step = Math.ceil(labs.length / (innerWidth < 600 ? 5 : 9));
+  document.getElementById("days").innerHTML = labs.filter((_, n) => n % step === 0)
+    .map(([k, l]) => `<span style="left:${pct(k)}">${l}</span>`).join("");
+}
+
+async function setWindow(start) {
+  buildTimeline(start);
+  renderTrack();
+  const now = Date.now();
+  let k0 = start == null ? Math.max(0, TL.nowIdx) : 0;
+  if (start == null) TL.times.forEach((ms, k) => { if (ms <= now) k0 = k; });
+  await field(layer.id);
+  setTime(k0);
 }
 
 async function init() {
-  const r = await fetch(DATA + "meta.json", { cache: "no-store" });
-  if (!r.ok) throw new Error("meta.json: " + r.status);
-  meta = await r.json(); G = meta.grid; NT = meta.times.length;
+  meta = await getJSON(DATA + "meta.json", { cache: "no-store" });
+  G = meta.grid;
+  SPOTS = await getJSON("spots.json").catch(() => []);
+
+  // arkivet är frivilligt – utan det visas bara prognosen
+  try {
+    const [am, ai] = await Promise.all([getJSON(ARKIV + "meta.json"), getJSON(ARKIV + "index.json", { cache: "no-store" })]);
+    if (JSON.stringify(am.grid) !== JSON.stringify(G)) throw new Error("annat rutnät");
+    const list = ai.runs.map(Date.parse).sort((a, b) => a - b);
+    if (list.length) arch = { meta: am, list, runs: new Set(list) };
+  } catch (e) { console.warn("Inget arkiv:", e.message); }
 
   const run = new Date(meta.modelRun), ageH = (Date.now() - run) / 36e5;
-  document.getElementById("runinfo").innerHTML = `DMI WAM · modellkörning ${fmtTime.format(run)}` +
+  document.getElementById("runinfo").innerHTML = `DMI WAM · prognos från ${fmtTime.format(run)}` +
+    (arch ? ` · historik från ${fmtDay.format(new Date(arch.list[0]))}` : "") +
     (ageH > 18 ? ` · <span class="stale">gammal prognos (${Math.round(ageH)} h)</span>` : "");
 
   const chips = document.getElementById("layers");
@@ -408,12 +638,19 @@ async function init() {
   SPOTS.forEach(([n], k) => sel.add(new Option(n, k)));
   sel.onchange = () => { if (sel.value === "") return closePoint(); const [n, la, lo] = SPOTS[+sel.value]; showPoint(n, la, lo); };
 
+  if (arch) {
+    const hc = document.getElementById("histctl"), di = document.getElementById("datum");
+    hc.hidden = false;
+    const iso = ms => new Date(ms).toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
+    di.min = iso(arch.list[0]); di.max = iso(Date.now());
+    di.onchange = () => { if (!di.value) return; const [y, m, d] = di.value.split("-").map(Number);
+      setWindow(new Date(y, m - 1, d).getTime()); };
+    document.getElementById("nu").onclick = () => { di.value = ""; setWindow(null); };
+  }
+
   const slider = document.getElementById("slider");
-  slider.max = NT - 1;
   slider.oninput = () => setTime(+slider.value);
-  // dygnsmarkeringar under reglaget
-  const days = []; meta.times.forEach((ts, k) => { if (fmtHour.format(new Date(ts)) === "12:00") days.push(fmtDay.format(new Date(ts))); });
-  document.getElementById("days").innerHTML = days.map(d => `<span>${d}</span>`).join("");
+  addEventListener("resize", () => TL && renderTrack());
 
   const play = document.getElementById("play");
   play.onclick = () => {
@@ -426,12 +663,9 @@ async function init() {
     if (e.key === "ArrowRight") setTime(t + 1); if (e.key === "ArrowLeft") setTime(t - 1);
   });
 
-  // starta på tidssteget närmast nu
-  const now = Date.now(); let k0 = 0;
-  meta.times.forEach((ts, k) => { if (new Date(ts) <= now) k0 = k; });
   renderLegend();
   arrows.addTo(map);
-  setTime(k0);
+  await setWindow(null);
 }
 init().catch(e => { document.getElementById("runinfo").innerHTML = `<span class="stale">Kunde inte ladda prognosen: ${e.message}</span>`; console.error(e); });
 </script>
